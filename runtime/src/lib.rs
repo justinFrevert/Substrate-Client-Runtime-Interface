@@ -271,6 +271,14 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 }
 
+impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+	where
+		Call: From<C>,
+{
+	type Extrinsic = UncheckedExtrinsic;
+	type OverarchingCall = Call;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -287,7 +295,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template,
+		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
 	}
 );
 
@@ -335,6 +343,12 @@ mod benches {
 }
 
 impl_runtime_apis! {
+	impl my_runtime_api::MyRuntimeApi<Block> for Runtime {
+		fn call_extrinsic(something: u32) -> Result<(), ()> {
+			TemplateModule::call_extrinsic(something)
+		}
+	}
+
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {
 			VERSION

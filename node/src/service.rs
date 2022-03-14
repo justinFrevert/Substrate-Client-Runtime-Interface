@@ -1,16 +1,23 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use node_template_runtime::{self, opaque::Block, RuntimeApi};
+use std::{sync::Arc, time::Duration};
 use sc_client_api::{BlockBackend, ExecutorProvider};
+use sc_client_api::HeaderBackend;
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 pub use sc_executor::NativeElseWasmExecutor;
 use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
+use sc_service::{Configuration, error::Error as ServiceError, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
+use sp_api::{BlockT, ProvideRuntimeApi};
 use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-use std::{sync::Arc, time::Duration};
+use sp_runtime::generic;
+
+use my_runtime_api::MyRuntimeApi;
+use node_template_runtime::{self, opaque::Block, RuntimeApi};
+use node_template_runtime::Hash as RuntimeHash;
+use node_template_runtime::opaque::UncheckedExtrinsic as OpaqueRuntimeExtrinsic;
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -33,7 +40,7 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
 }
 
 type FullClient =
-	sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
+sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
@@ -60,7 +67,7 @@ pub fn new_partial(
 	ServiceError,
 > {
 	if config.keystore_remote.is_some() {
-		return Err(ServiceError::Other("Remote Keystores are not supported.".into()))
+		return Err(ServiceError::Other("Remote Keystores are not supported.".into()));
 	}
 
 	let telemetry = config
@@ -342,6 +349,35 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		);
 	}
 
+
+	let task = do_call_runtime_api(client.clone());
+
+	task_manager.spawn_handle().spawn_blocking(
+		"tx_submission",
+		None,
+		task,
+	);
+
 	network_starter.start_network();
 	Ok(task_manager)
+}
+
+async fn do_call_runtime_api<B, C>(
+	client: Arc<C>,
+)
+	where
+		B: BlockT<Extrinsic=OpaqueRuntimeExtrinsic, Hash=RuntimeHash>,
+		C: ProvideRuntimeApi<B>
+		+ HeaderBackend<B>,
+		C::Api: MyRuntimeApi<B>
+{
+	// Some argument we want to send to the extrinsic from the client
+	let some_num = 7;
+	// Fulfill the hash argument added by the runtime api macro
+	let best_hash = client.info().best_hash;
+
+	let result = client.runtime_api()
+		.call_extrinsic(&generic::BlockId::Hash(best_hash), some_num)
+		.expect("tx submission shouldn't fail");
+	log::info!("submitted unsigned tx. result: {:?}", result);
 }
