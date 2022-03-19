@@ -1,8 +1,27 @@
-# Substrate Node Template
+# Substrate Example: client <> runtime interactions
 
-[![Try on playground](https://img.shields.io/badge/Playground-Node_Template-brightgreen?logo=Parity%20Substrate)](https://docs.substrate.io/playground/) [![Matrix](https://img.shields.io/matrix/substrate-technical:matrix.org)](https://matrix.to/#/#substrate-technical:matrix.org)
+| :exclamation:  The code included here is meant for demonstrating an idea. It is not audited, not ready for production, and furthermore, includes outside code that can call the runtime. Proceed with caution. |
+|-----------------------------------------|
 
-A fresh FRAME-based [Substrate](https://www.substrate.io/) node, ready for hacking :rocket:
+
+### Motivation
+
+Substrate dapp development occurs primarily in the wasm runtime. This component is orchestrated by the client. See the architecture guide below:
+![Substrate Architecture](https://d33wubrfki0l68.cloudfront.net/db911e6d0c29fd98e50772fa069783f62b33d739/8ceaf/static/262e7fe9f1f7d3db5dd8cee450d77c86/c1b63/substrate-arch.png). Developers are able to expand their development to include off-chain data and computation, essentially making use of two different interfaces to bridge the runtime and the client. Calls can be made from the runtime to the client, as well as the inverse. 
+
+Developers can step outside of runtime development to add features to the client pertaining to: offchain oracle data, cli extensions, computations relying on std, or otherwise runtime-incompatible dependencies. This brings great flexibility to developers - possibly more than an offchain-worker provides, with the cost of more implementation details, and _requirements for security care_. 
+
+The two interfaces that allow this are [Runtime APIs](https://docs.substrate.io/rustdocs/latest/sp_api/index.html) and [Host functions](https://docs.rs/sp-runtime-interface/latest/sp_runtime_interface/). Runtime APIs allow runtime or pallet functions to be called from the client, host functions allow client-side functions to be called from the runtime. 
+
+This repository is meant to demonstrate runtime apis and host functions through examples. This gives the reading developer ideas on how to implement communication two-ways, between the runtime and client.
+
+### Runtime APIs
+The interface to bring offchain-data from the client into the runtime is known as the [Runtime API](https://docs.substrate.io/rustdocs/latest/sp_api/index.html). Developers can expose their runtime or pallet functions to the client through runtime api functions. This repository demonstrates this through https://github.com/justinFrevert/Substrate-Client-Runtime-Interface/commit/7f9ffe9e1f0ca2846518f8fdd28d036e05f69dc5. The general steps to implement are:
+1. Add some library that declares your runtime api trait, through use of `decl_runtime_apis`. (See: `primitives/my-runtime-api/src/lib.rs`)
+2. Implement the runtime api in the `impl_runtime_apis` section in your runtime. Inside of your runtime api function is where you will call whichever runtime function you desire and deem safe. See the `impl_runtime_apis` section inside `runtime/src/lib.rs`.
+
+### Host functions
+TBD
 
 ## Getting Started
 
