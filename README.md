@@ -19,6 +19,7 @@ This repository is meant to demonstrate runtime apis and host functions through 
 The interface to bring offchain-data from the client into the runtime is known as the [Runtime API](https://docs.substrate.io/rustdocs/latest/sp_api/index.html). Developers can expose their runtime or pallet functions to the client through runtime api functions. This repository demonstrates this through https://github.com/justinFrevert/Substrate-Client-Runtime-Interface/commit/7f9ffe9e1f0ca2846518f8fdd28d036e05f69dc5. The general steps to implement are:
 1. Add some library that declares your runtime api trait, through use of `decl_runtime_apis`. (See: `primitives/my-runtime-api/src/lib.rs`)
 2. Implement the runtime api in the `impl_runtime_apis` section in your runtime. Inside of your runtime api function is where you will call whichever runtime function you desire and deem safe. See the `impl_runtime_apis` section inside `runtime/src/lib.rs`.
+3. Now you can use your runtime api function somewhere inside your client. In this example, we've just placed it inside of the service.rs, and included some arbitrary action of posting some example data. Though this could be some offchain action, or some other useful thing.
 
 ### Host functions
 TBD
